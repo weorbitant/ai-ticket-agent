@@ -1,0 +1,11 @@
+{
+  "sources": [
+    {
+      "owner": "example-org",
+      "repo": "example-repo",
+      "files": ["README.md"],
+      "ref": "main"
+    }
+  ]
+}
+

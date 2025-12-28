@@ -1,0 +1,73 @@
+{
+  "projects": [
+    {
+      "key": "TRD",
+      "name": "Transformacion digital",
+      "description": "Proyecto principal de Transformacion digital",
+      "aliases": ["plataforma del dato", "pgi", "CRM"]
+    }
+  ],
+  "issueTypes": [
+    {
+      "name": "Bug",
+      "aliases": ["bug", "bugs", "error", "errores", "fallo", "fallos", "problema", "problemas"]
+    },
+    {
+      "name": "Story",
+      "aliases": ["historia", "historias", "story", "stories", "funcionalidad", "funcionalidades"]
+    },
+    {
+      "name": "Task",
+      "aliases": ["tarea", "tareas", "task", "tasks"]
+    },
+    {
+      "name": "Epic",
+      "aliases": ["epic", "epica", "epicas", "epics"]
+    },
+    {
+      "name": "Sub-task",
+      "aliases": ["subtarea", "subtareas", "sub-task", "sub-tasks"]
+    }
+  ],
+  "statuses": [
+    {
+      "name": "Open",
+      "aliases": ["abierto", "abierta", "abiertos", "abiertas", "open", "nuevo", "nuevos"]
+    },
+    {
+      "name": "In Progress",
+      "aliases": ["en progreso", "in progress", "working", "desarrollo", "en desarrollo", "progreso"]
+    },
+    {
+      "name": "Done",
+      "aliases": ["cerrado", "cerrada", "cerrados", "cerradas", "done", "completado", "completados", "resuelto", "resueltos", "finalizado", "finalizados"]
+    },
+    {
+      "name": "To Do",
+      "aliases": ["pendiente", "pendientes", "to do", "todo", "por hacer"]
+    }
+  ],
+  "components": [
+    {
+      "name": "Ingestion",
+      "description": "Pipelines de ingesta de datos",
+      "aliases": ["ingesta", "ingestion", "etl", "pipelines"]
+    },
+    {
+      "name": "Storage",
+      "description": "Almacenamiento y data lake",
+      "aliases": ["almacenamiento", "storage", "lake", "data lake", "datalake"]
+    },
+    {
+      "name": "Processing",
+      "description": "Procesamiento y transformación de datos",
+      "aliases": ["procesamiento", "processing", "transformacion", "spark"]
+    },
+    {
+      "name": "API",
+      "description": "APIs y servicios de acceso a datos",
+      "aliases": ["api", "apis", "servicios", "endpoints"]
+    }
+  ]
+}
+
