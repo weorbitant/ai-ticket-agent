@@ -1,32 +1,32 @@
 import { Command } from "commander";
-import { type EstimateEffortPort } from "../../../domain/ports/input/estimate-effort.port.js";
-import { displayEstimationResult } from "./formatters.js";
+import { type RefineTicketPort } from "../../../domain/ports/input/refine-ticket.port.js";
+import { displayRefinementResult } from "./formatters.js";
 
-export interface EstimateCommandOptions {
+export interface RefineCommandOptions {
   verbose: boolean;
   sources?: string;
 }
 
 /**
- * Creates the estimate command.
+ * Creates the refine command.
  */
-export function createEstimateCommand(estimatorService: EstimateEffortPort): Command {
-  return new Command("estimate")
-    .description("Estimar esfuerzo de un ticket usando contexto de repositorios GitHub")
+export function createRefineCommand(refinerService: RefineTicketPort): Command {
+  return new Command("refine")
+    .description("Refinar un ticket añadiendo contexto, tareas y criterios de aceptación")
     .argument("<ticket-key>", "Clave del ticket (ej: TRD-123)")
-    .argument("[context]", "Contexto crítico adicional para la estimación")
+    .argument("[context]", "Contexto adicional para el refinamiento")
     .option("-v, --verbose", "Mostrar información detallada")
     .option("--sources <path>", "Ruta al archivo github-sources.json")
-    .action(async (ticketKey: string, userContext: string | undefined, options: EstimateCommandOptions) => {
+    .action(async (ticketKey: string, userContext: string | undefined, options: RefineCommandOptions) => {
       try {
-        console.log(`\n🎯 Estimando ticket ${ticketKey}...`);
+        console.log(`\n✨ Refinando ticket ${ticketKey}...`);
         console.log("───────────────────────────────────────");
 
         if (userContext && options.verbose) {
           console.log(`\n💬 Contexto del usuario: "${userContext}"`);
         }
 
-        const result = await estimatorService.execute(ticketKey, {
+        const result = await refinerService.execute(ticketKey, {
           sourcesPath: options.sources,
           userContext,
         });
@@ -35,7 +35,7 @@ export function createEstimateCommand(estimatorService: EstimateEffortPort): Com
           displayVerboseContext(result.loadedFiles);
         }
 
-        displayEstimationResult(result);
+        displayRefinementResult(result);
       } catch (error) {
         if (error instanceof Error) {
           console.error(`\n❌ Error: ${error.message}`);

@@ -1,5 +1,6 @@
 import { type Ticket, type QualityReport, type SearchResult } from "../../../domain/models/ticket.js";
 import { type EstimateEffortResult } from "../../../domain/ports/input/estimate-effort.port.js";
+import { type RefineTicketResult } from "../../../domain/ports/input/refine-ticket.port.js";
 
 /**
  * Returns an icon for the ticket status.
@@ -148,6 +149,79 @@ export function displayEstimationResult(result: EstimateEffortResult): void {
   console.log(`\n🎲 Estimación: ${result.estimation.points} punto${result.estimation.points > 1 ? "s" : ""}`);
   console.log(`\n💡 Razonamiento:`);
   console.log(`   ${result.estimation.reasoning}`);
+  console.log("");
+}
+
+/**
+ * Displays a refinement result.
+ */
+export function displayRefinementResult(result: RefineTicketResult): void {
+  displayTicketInfo(result.ticket);
+
+  console.log("\n═══════════════════════════════════════");
+  console.log("           TICKET REFINADO");
+  console.log("═══════════════════════════════════════");
+
+  const { refinement } = result;
+
+  // Suggested title
+  if (refinement.suggestedTitle) {
+    console.log("\n📝 Título sugerido:");
+    console.log(`   ${refinement.suggestedTitle}`);
+  } else {
+    console.log("\n📝 Título: (mantener el actual)");
+  }
+
+  // Context
+  if (refinement.context) {
+    console.log("\n📖 Contexto:");
+    const contextLines = refinement.context.split("\n");
+    for (const line of contextLines) {
+      console.log(`   ${line}`);
+    }
+  }
+
+  // Tasks
+  if (refinement.tasks.length > 0) {
+    console.log("\n🔧 Tareas técnicas:");
+    refinement.tasks.forEach((task, index) => {
+      console.log(`   ${index + 1}. ${task}`);
+    });
+  }
+
+  // Acceptance criteria
+  if (refinement.acceptanceCriteria.length > 0) {
+    console.log("\n✅ Criterios de aceptación:");
+    refinement.acceptanceCriteria.forEach((criterion) => {
+      console.log(`   • ${criterion}`);
+    });
+  }
+
+  // Additional notes
+  if (refinement.additionalNotes) {
+    console.log("\n📌 Notas adicionales:");
+    const notesLines = refinement.additionalNotes.split("\n");
+    for (const line of notesLines) {
+      console.log(`   ${line}`);
+    }
+  }
+
+  // Warnings
+  if (refinement.warnings.length > 0) {
+    console.log("\n───────────────────────────────────────");
+    console.log("⚠️  WARNINGS:");
+    refinement.warnings.forEach((warning) => {
+      console.log(`   • ${warning}`);
+    });
+  }
+
+  // Summary
+  console.log("\n═══════════════════════════════════════");
+  if (refinement.isComplete) {
+    console.log("✅ Refinamiento completo");
+  } else {
+    console.log("⚠️  Refinamiento parcial - revisar warnings");
+  }
   console.log("");
 }
 

@@ -1,5 +1,6 @@
 import { type SearchParams } from "../../models/ticket.js";
 import { type EvaluationResult, type EstimationResult } from "../../models/estimation.js";
+import { type RefinementResult } from "../../models/refinement.js";
 
 /**
  * Port for LLM interpretation capabilities.
@@ -33,13 +34,30 @@ export interface LLMInterpreterPort {
    * @param summary - The ticket summary/title
    * @param description - The ticket description
    * @param repositoryContext - Context from GitHub repositories
+   * @param userContext - Optional critical context provided by the user
    * @returns Estimation with points and reasoning
    */
   estimateEffort(
     summary: string,
     description: string,
-    repositoryContext: string
+    repositoryContext: string,
+    userContext?: string
   ): Promise<EstimationResult>;
+
+  /**
+   * Refine a ticket by generating structured content.
+   * @param summary - The ticket summary/title
+   * @param description - The ticket description
+   * @param repositoryContext - Context from GitHub repositories
+   * @param userContext - Optional additional context provided by the user
+   * @returns Refinement with context, tasks, acceptance criteria, etc.
+   */
+  refineTicket(
+    summary: string,
+    description: string,
+    repositoryContext: string,
+    userContext?: string
+  ): Promise<RefinementResult>;
 
   /**
    * Check if the LLM service is healthy and available.

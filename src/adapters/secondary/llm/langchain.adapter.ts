@@ -10,12 +10,18 @@ import {
 } from "../../../domain/models/estimation.js";
 import { type LLMInterpreterPort } from "../../../domain/ports/output/llm-interpreter.port.js";
 import {
+  type RefinementResult,
+  createEmptyRefinement,
+} from "../../../domain/models/refinement.js";
+import {
   DESCRIPTION_EVALUATION_PROMPT,
   buildDescriptionEvaluationPrompt,
   TITLE_EVALUATION_PROMPT,
   buildTitleEvaluationPrompt,
   ESTIMATION_PROMPT,
   buildEstimationPrompt,
+  REFINEMENT_PROMPT,
+  buildRefinementPrompt,
 } from "./prompts.js";
 
 // JSON Schema for LLM response - using raw JSON Schema instead of Zod
@@ -32,19 +38,31 @@ const llmOutputJsonSchema = {
         description: "KEY del proyecto en Jira (ej: TRD) o null si no se especifica",
       },
       issueType: {
-        type: "string",
+        oneOf: [
+          { type: "string" },
+          { type: "array", items: { type: "string" } },
+        ],
         nullable: true,
-        description: "Nombre exacto del tipo de issue (Epic, Tarea) o null si no se especifica",
+        description:
+          "Tipo de issue. Un string si es uno solo, o un array de strings si son varios. Ej: 'Bug' o ['Bug', 'Task']. null si no se especifica",
       },
       status: {
-        type: "string",
+        oneOf: [
+          { type: "string" },
+          { type: "array", items: { type: "string" } },
+        ],
         nullable: true,
-        description: "Nombre exacto del estado del ticket o null si no se especifica",
+        description:
+          "Estado del ticket. Un string si es uno solo, o un array de strings si son varios. Ej: 'Open' o ['Open', 'In Progress']. null si no se especifica",
       },
       component: {
-        type: "string",
+        oneOf: [
+          { type: "string" },
+          { type: "array", items: { type: "string" } },
+        ],
         nullable: true,
-        description: "Nombre exacto del componente o null si no se especifica",
+        description:
+          "Componente del ticket. Un string si es uno solo, o un array de strings si son varios. Ej: 'API' o ['API', 'Frontend']. null si no se especifica",
       },
       textSearch: {
         type: "string",
@@ -222,7 +240,8 @@ export class LangChainAdapter implements LLMInterpreterPort {
   async estimateEffort(
     summary: string,
     description: string,
-    repositoryContext: string
+    repositoryContext: string,
+    userContext?: string
   ): Promise<EstimationResult> {
     const prompt = ChatPromptTemplate.fromMessages([
       ["system", ESTIMATION_PROMPT],
@@ -232,7 +251,7 @@ export class LangChainAdapter implements LLMInterpreterPort {
     try {
       const chain = prompt.pipe(this.model);
       const result = await chain.invoke({
-        content: buildEstimationPrompt(summary, description, repositoryContext),
+        content: buildEstimationPrompt(summary, description, repositoryContext, userContext),
       });
 
       const content = typeof result.content === "string" ? result.content : String(result.content);
@@ -267,6 +286,111 @@ export class LangChainAdapter implements LLMInterpreterPort {
         points: 5,
         reasoning: "Error al estimar el ticket. Se asigna valor medio por defecto.",
       };
+    }
+  }
+
+  async refineTicket(
+    summary: string,
+    description: string,
+    repositoryContext: string,
+    userContext?: string
+  ): Promise<RefinementResult> {
+    const prompt = ChatPromptTemplate.fromMessages([
+      ["system", REFINEMENT_PROMPT],
+      ["human", "{content}"],
+    ]);
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/5e7dbc62-7a1e-4549-bbed-73311f6a0822',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'langchain.adapter.ts:refineTicket:entry',message:'refineTicket called',data:{summaryLen:summary?.length,descLen:description?.length,repoCtxLen:repositoryContext?.length,userCtxLen:userContext?.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A-B'})}).catch(()=>{});
+    // #endregion
+
+    try {
+      const chain = prompt.pipe(this.model);
+      const builtPrompt = buildRefinementPrompt(summary, description, repositoryContext, userContext);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/5e7dbc62-7a1e-4549-bbed-73311f6a0822',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'langchain.adapter.ts:refineTicket:beforeInvoke',message:'About to invoke LLM',data:{promptLen:builtPrompt?.length,promptPreview:builtPrompt?.substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+      const result = await chain.invoke({
+        content: builtPrompt,
+      });
+
+      const content = typeof result.content === "string" ? result.content : String(result.content);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/5e7dbc62-7a1e-4549-bbed-73311f6a0822',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'langchain.adapter.ts:refineTicket:llmResponse',message:'LLM response received',data:{contentLen:content?.length,contentPreview:content?.substring(0,1000),contentFull:content},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A-B'})}).catch(()=>{});
+      // #endregion
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/5e7dbc62-7a1e-4549-bbed-73311f6a0822',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'langchain.adapter.ts:refineTicket:jsonMatch',message:'JSON regex result',data:{matched:!!jsonMatch,matchedContent:jsonMatch?.[0]?.substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+
+      if (!jsonMatch) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/5e7dbc62-7a1e-4549-bbed-73311f6a0822',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'langchain.adapter.ts:refineTicket:noJsonMatch',message:'No JSON found in response',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        return createEmptyRefinement();
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]) as {
+        suggestedTitle?: string | null;
+        context?: string;
+        tasks?: string[];
+        acceptanceCriteria?: string[];
+        additionalNotes?: string | null;
+        warnings?: string[];
+        isComplete?: boolean;
+      };
+
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/5e7dbc62-7a1e-4549-bbed-73311f6a0822',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'langchain.adapter.ts:refineTicket:parsed',message:'JSON parsed successfully',data:{hasContext:!!parsed.context,tasksCount:parsed.tasks?.length,criteriaCount:parsed.acceptanceCriteria?.length,parsedKeys:Object.keys(parsed)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+
+      // Normalize and validate the result
+      const warnings: string[] = Array.isArray(parsed.warnings) ? parsed.warnings : [];
+      const tasks = Array.isArray(parsed.tasks) ? parsed.tasks : [];
+      const acceptanceCriteria = Array.isArray(parsed.acceptanceCriteria)
+        ? parsed.acceptanceCriteria
+        : [];
+      const context = typeof parsed.context === "string" ? parsed.context : "";
+
+      // Add warnings for missing required fields
+      if (!context || context.trim() === "") {
+        warnings.push("No se pudo generar el contexto del ticket");
+      }
+      if (tasks.length === 0) {
+        warnings.push("No se pudieron identificar las tareas técnicas");
+      }
+      if (acceptanceCriteria.length === 0) {
+        warnings.push("No se pudieron generar criterios de aceptación");
+      }
+
+      return {
+        suggestedTitle:
+          parsed.suggestedTitle === "null" || parsed.suggestedTitle === ""
+            ? null
+            : parsed.suggestedTitle ?? null,
+        context,
+        tasks,
+        acceptanceCriteria,
+        additionalNotes:
+          parsed.additionalNotes === "null" || parsed.additionalNotes === ""
+            ? null
+            : parsed.additionalNotes ?? null,
+        warnings,
+        isComplete: warnings.length === 0,
+      };
+    } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/5e7dbc62-7a1e-4549-bbed-73311f6a0822',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'langchain.adapter.ts:refineTicket:catch',message:'Exception caught',data:{errorMsg:error instanceof Error ? error.message : String(error),errorStack:error instanceof Error ? error.stack : ''},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+      if (error instanceof Error) {
+        if (error.message.includes("ECONNREFUSED") || error.message.includes("fetch failed")) {
+          throw new Error(
+            `No se pudo conectar con el LLM. Asegúrate de que llama.cpp está corriendo en ${this.baseUrl}`
+          );
+        }
+      }
+      return createEmptyRefinement();
     }
   }
 }

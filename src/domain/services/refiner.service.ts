@@ -1,8 +1,8 @@
 import {
-  type EstimateEffortPort,
-  type EstimateEffortOptions,
-  type EstimateEffortResult,
-} from "../ports/input/estimate-effort.port.js";
+  type RefineTicketPort,
+  type RefineTicketOptions,
+  type RefineTicketResult,
+} from "../ports/input/refine-ticket.port.js";
 import { type LLMInterpreterPort } from "../ports/output/llm-interpreter.port.js";
 import { type TicketRepositoryPort } from "../ports/output/ticket-repository.port.js";
 import {
@@ -11,16 +11,16 @@ import {
 } from "../ports/output/code-context-provider.port.js";
 
 /**
- * Service that implements the estimate effort use case.
+ * Service that implements the refine ticket use case.
  */
-export class EstimatorService implements EstimateEffortPort {
+export class RefinerService implements RefineTicketPort {
   constructor(
     private readonly ticketRepository: TicketRepositoryPort,
     private readonly llmInterpreter: LLMInterpreterPort,
     private readonly codeContextProvider: CodeContextProviderPort
   ) {}
 
-  async execute(ticketKey: string, options?: EstimateEffortOptions): Promise<EstimateEffortResult> {
+  async execute(ticketKey: string, options?: RefineTicketOptions): Promise<RefineTicketResult> {
     // Check LLM health first
     const llmHealthy = await this.llmInterpreter.healthCheck();
     if (!llmHealthy) {
@@ -44,8 +44,8 @@ export class EstimatorService implements EstimateEffortPort {
     // Extract description text
     const descriptionText = this.extractTextFromDescription(ticket.description);
 
-    // Estimate effort using LLM
-    const estimation = await this.llmInterpreter.estimateEffort(
+    // Refine ticket using LLM
+    const refinement = await this.llmInterpreter.refineTicket(
       ticket.summary,
       descriptionText,
       repositoryContext,
@@ -54,7 +54,7 @@ export class EstimatorService implements EstimateEffortPort {
 
     return {
       ticket,
-      estimation,
+      refinement,
       loadedFiles,
     };
   }

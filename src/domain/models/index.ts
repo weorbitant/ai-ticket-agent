@@ -32,3 +32,6 @@ export {
   formatDictionaryAsContext,
 } from "./dictionary.js";
 
+// Refinement models
+export { type RefinementResult, createEmptyRefinement } from "./refinement.js";
+

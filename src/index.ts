@@ -43,3 +43,12 @@ export { getSystemPrompt } from "./adapters/secondary/llm/prompts.js";
 
 // Config
 export { appConfig, type Config } from "./config/index.js";
+
+// Config paths (for external tools and scripts)
+export {
+  getConfigDir,
+  getUserConfigPath,
+  resolveConfigFile,
+  configDirExists,
+  getConfigFileInfo,
+} from "./config/paths.js";

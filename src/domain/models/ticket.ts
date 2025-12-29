@@ -15,13 +15,39 @@ const nullableString = z
   });
 
 /**
+ * Schema helper that transforms a string or array of strings, handling "null" values.
+ * Also handles comma-separated strings by splitting them into arrays.
+ */
+const nullableStringOrArray = z
+  .union([z.string(), z.array(z.string())])
+  .nullable()
+  .transform((val) => {
+    if (val === null || val === "null") {
+      return null;
+    }
+    if (Array.isArray(val)) {
+      const filtered = val.filter((v) => v !== "" && v !== "null");
+      return filtered.length === 0 ? null : filtered;
+    }
+    if (val === "") {
+      return null;
+    }
+    // Handle comma-separated strings from LLM
+    if (val.includes(",")) {
+      const parts = val.split(",").map((s) => s.trim()).filter((s) => s !== "" && s !== "null");
+      return parts.length === 0 ? null : parts.length === 1 ? parts[0] : parts;
+    }
+    return val;
+  });
+
+/**
  * Schema for search parameters extracted from user queries.
  */
 export const searchParamsSchema = z.object({
   project: nullableString,
-  issueType: nullableString,
-  status: nullableString,
-  component: nullableString,
+  issueType: nullableStringOrArray,
+  status: nullableStringOrArray,
+  component: nullableStringOrArray,
   textSearch: nullableString,
 });
 

@@ -1,11 +1,32 @@
 {
   "sources": [
     {
-      "owner": "example-org",
-      "repo": "example-repo",
+      "owner": "afianza-ac",
+      "repo": "af-diagrams",
+      "files": ["global-c4/c4-l1-global.puml","global-c4/c4-l2-global-plataformadato.puml"],
+      "ref": "main",
+      "category": "docs"
+    },
+    {
+      "owner": "afianza-ac",
+      "repo": "pd-service-data-factory",
       "files": ["README.md"],
-      "ref": "main"
+      "ref": "main",
+      "category": "code"
+    },
+    {
+      "owner": "afianza-ac",
+      "repo": "pd-service-backoffice-api",
+      "files": ["README.md"],
+      "ref": "main",
+      "category": "code"
+    },
+    {
+      "owner": "afianza-ac",
+      "repo": "pd-service-jira-adapter",
+      "files": ["README.md"],
+      "ref": "main",
+      "category": "code"
     }
   ]
 }
-

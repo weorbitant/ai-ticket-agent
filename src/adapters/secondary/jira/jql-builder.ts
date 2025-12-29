@@ -15,18 +15,51 @@ export function buildJql(params: SearchParams): JqlBuilderResult {
   }
 
   if (params.issueType) {
-    clauses.push(`issuetype = "${params.issueType}"`);
-    explanation.push(`Tipo: ${params.issueType}`);
+    if (Array.isArray(params.issueType)) {
+      if (params.issueType.length === 1) {
+        clauses.push(`issuetype = "${params.issueType[0]}"`);
+        explanation.push(`Tipo: ${params.issueType[0]}`);
+      } else {
+        const types = params.issueType.map((t) => `"${t}"`).join(", ");
+        clauses.push(`issuetype IN (${types})`);
+        explanation.push(`Tipos: ${params.issueType.join(", ")}`);
+      }
+    } else {
+      clauses.push(`issuetype = "${params.issueType}"`);
+      explanation.push(`Tipo: ${params.issueType}`);
+    }
   }
 
   if (params.status) {
-    clauses.push(`status = "${params.status}"`);
-    explanation.push(`Estado: ${params.status}`);
+    if (Array.isArray(params.status)) {
+      if (params.status.length === 1) {
+        clauses.push(`status = "${params.status[0]}"`);
+        explanation.push(`Estado: ${params.status[0]}`);
+      } else {
+        const statuses = params.status.map((s) => `"${s}"`).join(", ");
+        clauses.push(`status IN (${statuses})`);
+        explanation.push(`Estados: ${params.status.join(", ")}`);
+      }
+    } else {
+      clauses.push(`status = "${params.status}"`);
+      explanation.push(`Estado: ${params.status}`);
+    }
   }
 
   if (params.component) {
-    clauses.push(`component = "${params.component}"`);
-    explanation.push(`Componente: ${params.component}`);
+    if (Array.isArray(params.component)) {
+      if (params.component.length === 1) {
+        clauses.push(`component = "${params.component[0]}"`);
+        explanation.push(`Componente: ${params.component[0]}`);
+      } else {
+        const components = params.component.map((c) => `"${c}"`).join(", ");
+        clauses.push(`component IN (${components})`);
+        explanation.push(`Componentes: ${params.component.join(", ")}`);
+      }
+    } else {
+      clauses.push(`component = "${params.component}"`);
+      explanation.push(`Componente: ${params.component}`);
+    }
   }
 
   if (params.textSearch) {

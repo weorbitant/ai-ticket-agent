@@ -13,12 +13,17 @@ export const gitHubFileContentSchema = z.object({
 
 export type GitHubFileContent = z.infer<typeof gitHubFileContentSchema>;
 
+// Category types for GitHub sources
+export const gitHubSourceCategorySchema = z.enum(["code", "docs"]);
+export type GitHubSourceCategory = z.infer<typeof gitHubSourceCategorySchema>;
+
 // Schema for a source definition in github-sources.json
 export const gitHubSourceSchema = z.object({
   owner: z.string().min(1, "owner es requerido"),
   repo: z.string().min(1, "repo es requerido"),
   files: z.array(z.string()).min(1, "al menos un archivo es requerido"),
   ref: z.string().optional().default("main"),
+  category: gitHubSourceCategorySchema.default("code"),
 });
 
 export type GitHubSource = z.infer<typeof gitHubSourceSchema>;
@@ -37,6 +42,7 @@ export interface LoadedFile {
   path: string;
   ref: string;
   content: string;
+  category: GitHubSourceCategory;
 }
 
 // Client options

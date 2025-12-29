@@ -121,36 +121,51 @@ export function buildTitleEvaluationPrompt(title: string | null): string {
 /**
  * System prompt for estimating ticket effort using Fibonacci points.
  */
-export const ESTIMATION_PROMPT = `Eres un experto en estimación ágil y planificación de proyectos de software.
+export const ESTIMATION_PROMPT = `Eres un experto en arquitectura de software y estimación ágil.
 Tu tarea es estimar el esfuerzo/complejidad de un ticket de Jira usando puntos de la serie Fibonacci.
 
 ## Escala de puntos Fibonacci:
 
 - **1 punto**: Tarea trivial, cambio muy pequeño, sin riesgo. Ej: cambiar un texto, ajustar un color.
 - **2 puntos**: Tarea simple, pocas líneas de código, bajo riesgo. Ej: añadir un campo a un formulario.
-- **3 puntos**: Tarea de complejidad media-baja, requiere algo de análisis. Ej: implementar una validación.
-- **5 puntos**: Tarea de complejidad media, requiere diseño y testing. Ej: crear un nuevo endpoint API.
+- **3 puntos**: Tarea de complejidad media-baja, requiere algo de análisis. Ej: implementar una validación o actualizar la lógica de negocio de un componente existente.
+- **5 puntos**: Tarea de complejidad media, requiere diseño y testing. Ej: crear un nuevo endpoint API o procesar una nueva entidad.
 - **8 puntos**: Tarea compleja, múltiples componentes afectados, riesgo moderado. Ej: integración con servicio externo.
 - **13 puntos**: Tarea muy compleja, alta incertidumbre o riesgo. Debería considerarse dividirla.
 
+## Proceso de estimación:
+
+Sigue estos pasos en orden para estimar:
+
+### Paso 1: Entender la tarea (Ticket)
+Lee el título y descripción del ticket para comprender QUÉ hay que hacer. Esta es la base de la complejidad.
+
+### Paso 2: Contexto crítico del usuario (si existe)
+Si el usuario proporciona un comentario adicional, este contiene las CLAVES para entender la tarea correctamente. Presta especial atención a esta información.
+
+### Paso 3: Posicionar en la arquitectura (Documentación de Arquitectura)
+Usa los diagramas C4 y documentación de plataforma para entender DÓNDE encaja la tarea dentro de la arquitectura general y qué sistemas/servicios están involucrados.
+
+### Paso 4: Entendimiento técnico fino (Contexto de Código)
+Se te proporciona documentación de varios repositorios (READMEs de microservicios, etc.). 
+**IMPORTANTE**: Las tareas normalmente solo afectan a 1 o 2 repositorios. Identifica cuáles son los repos relevantes para esta tarea específica y usa SOLO esa documentación. IGNORA la información de repositorios que no están implicados en la tarea.
+
 ## Factores a considerar:
 
-1. **Complejidad técnica**: ¿Cuántos componentes/sistemas están involucrados?
+1. **Complejidad técnica**: ¿Cuántos repositorios/servicios están realmente afectados?
 2. **Incertidumbre**: ¿Está claro qué hay que hacer o hay ambigüedad?
 3. **Riesgo**: ¿Puede afectar a otras funcionalidades existentes?
 4. **Dependencias**: ¿Depende de otros equipos o sistemas externos?
 5. **Testing**: ¿Cuánto esfuerzo de pruebas requiere?
 
-## Contexto de repositorios:
-
-Se te proporcionará documentación de los repositorios relevantes (READMEs, docs) para que entiendas mejor la arquitectura y tecnologías del proyecto. Usa esta información para hacer una estimación más precisa.
+## Respuesta:
 
 IMPORTANTE:
 - Responde SOLO con un JSON válido, sin texto adicional
 - El JSON debe tener exactamente esta estructura: {{"points": number, "reasoning": "string"}}
 - "points" DEBE ser uno de estos valores: 1, 2, 3, 5, 8, 13
-- "reasoning" debe explicar brevemente (2-3 frases) por qué elegiste esa estimación
-- Si no hay suficiente información, estima con lo que tengas y menciona la incertidumbre`;
+- En "reasoning", es importante que mencionesen una primera línea qué repositorios/servicios identificaste como afectados o el alcance de la tarea. En una segunda línea explica brevemente (2-3 frases) por qué elegiste esa estimación
+- Si no hay suficiente información, informa al usuario y estima con 13 puntos. No intentes adivinar, informa la incertidumbre.`;
 
 /**
  * Builds the user prompt for effort estimation.
@@ -158,7 +173,8 @@ IMPORTANTE:
 export function buildEstimationPrompt(
   ticketSummary: string,
   ticketDescription: string | null,
-  repositoryContext: string
+  repositoryContext: string,
+  userContext?: string
 ): string {
   const descriptionText = ticketDescription?.trim() || "Sin descripción disponible.";
 
@@ -169,10 +185,18 @@ export function buildEstimationPrompt(
 **Descripción:**
 ${descriptionText}`;
 
-  if (repositoryContext && repositoryContext.trim() !== "") {
+  if (userContext && userContext.trim() !== "") {
     prompt += `
 
-## Documentación de repositorios:
+## ⚠️ CONTEXTO CRÍTICO DEL USUARIO:
+
+> ${userContext}
+
+**IMPORTANTE**: El contexto anterior es información crítica proporcionada por el usuario. Debe tener un peso significativo en tu estimación.`;
+  }
+
+  if (repositoryContext && repositoryContext.trim() !== "") {
+    prompt += `
 
 ${repositoryContext}`;
   }
@@ -180,6 +204,117 @@ ${repositoryContext}`;
   prompt += `
 
 Proporciona tu estimación en puntos Fibonacci (1, 2, 3, 5, 8, 13).`;
+
+  return prompt;
+}
+
+/**
+ * System prompt for refining a ticket with structured content.
+ */
+export const REFINEMENT_PROMPT = `Eres un experto arquitecto software, metodologías ágiles y redacción de tickets.
+Tu tarea es refinar un ticket de Jira para que esté completo y bien estructurado.
+
+## Un ticket bien refinado debe incluir:
+
+### 1. Título claro
+- Conciso (menos de 10 palabras)
+- Descriptivo: indica qué se va a hacer
+- Evita formato de historia de usuario ("Como usuario...")
+- Si el título actual es bueno, puedes mantenerlo (devuelve null)
+
+### 2. Contexto
+- Explica el problema o necesidad de negocio
+- Proporciona background suficiente para entender POR QUÉ se hace esto
+- Incluye información relevante sobre el estado actual
+
+### 3. Tareas técnicas
+- Lista de tareas específicas y accionables
+- Cada tarea debe ser clara y medible
+- Ordenadas de forma lógica (dependencias primero)
+- Nivel de detalle técnico apropiado
+
+### 4. Criterios de aceptación
+- Condiciones específicas que deben cumplirse
+- Escritos de forma verificable (se puede decir "sí" o "no")
+- Cubren los casos principales y edge cases importantes
+
+### 5. Notas adicionales (opcional)
+- Referencias técnicas relevantes
+- Consideraciones de seguridad o rendimiento
+- Dependencias con otros tickets o sistemas
+
+## Proceso de refinamiento:
+
+### Paso 1: Analizar el ticket actual
+Lee el título y descripción para entender la intención original.
+
+### Paso 2: Contexto del usuario (si existe)
+Si el usuario proporciona comentarios adicionales, úsalos para clarificar la intención.
+
+### Paso 3: Contexto técnico
+Usa la documentación de repositorios para entender:
+- Qué servicios/componentes están involucrados
+- Cómo encaja en la arquitectura existente
+- Qué consideraciones técnicas son relevantes
+
+### Paso 4: Generar el refinamiento
+Crea contenido estructurado basándote en toda la información disponible.
+
+## Respuesta:
+
+IMPORTANTE:
+- Responde SOLO con un JSON válido, sin texto adicional antes o después
+- El JSON debe tener exactamente esta estructura:
+{{
+  "suggestedTitle": "string o null si mantener el actual",
+  "context": "string con el contexto del ticket",
+  "tasks": ["array", "de", "tareas"],
+  "acceptanceCriteria": ["array", "de", "criterios"],
+  "additionalNotes": "string o null si no hay notas",
+  "warnings": ["array de warnings si no pudiste completar algo"],
+  "isComplete": true/false
+}}
+- Si no tienes suficiente información para algún campo, déjalo vacío y añade un warning
+- "isComplete" es true solo si pudiste generar todos los campos sin warnings
+- Todos los textos deben estar en español`;
+
+/**
+ * Builds the user prompt for ticket refinement.
+ */
+export function buildRefinementPrompt(
+  ticketSummary: string,
+  ticketDescription: string | null,
+  repositoryContext: string,
+  userContext?: string
+): string {
+  const descriptionText = ticketDescription?.trim() || "Sin descripción disponible.";
+
+  let prompt = `## Ticket a refinar:
+
+**Título actual:** ${ticketSummary}
+
+**Descripción actual:**
+${descriptionText}`;
+
+  if (userContext && userContext.trim() !== "") {
+    prompt += `
+
+## Contexto adicional del usuario:
+
+> ${userContext}
+
+**IMPORTANTE**: Este contexto proporciona información clave para entender mejor el ticket.`;
+  }
+
+  if (repositoryContext && repositoryContext.trim() !== "") {
+    prompt += `
+
+${repositoryContext}`;
+  }
+
+  prompt += `
+
+Genera el refinamiento estructurado del ticket.`;
 
   return prompt;
 }
