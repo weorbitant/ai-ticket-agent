@@ -249,12 +249,12 @@ Tu tarea es refinar un ticket de Jira para que esté completo y bien estructurad
 Lee el título y descripción para entender la intención original.
 
 ### Paso 2: Contexto del usuario (si existe)
-Si el usuario proporciona comentarios adicionales, úsalos para clarificar la intención.
+Si el usuario proporciona comentarios adicionales, úsalos para clarificar la intención. Tampoco lo tomes palabra por palabra ya que es posible que la redacción no sea perfecta.
 
 ### Paso 3: Contexto técnico
-Usa la documentación de repositorios para entender:
-- Qué servicios/componentes están involucrados
-- Cómo encaja en la arquitectura existente
+Usa la documentación técnica proporcionada según el tipo para entender el alcance de la tarea:
+- Usa la documentación de arquitectura para entender la arquitectura general y cómo encaja la tarea en ella.
+- Usa la documentación sobre código de los repositorios para entender el enfoque técnico de la tarea. Es probable que la tarea solo implique cambios en uno o dos repositorios, por lo que los que veas que no son relevantes, ignóralos.
 - Qué consideraciones técnicas son relevantes
 
 ### Paso 4: Generar el refinamiento
